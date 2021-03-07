@@ -3,11 +3,14 @@ package db;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DbDriver {
@@ -18,121 +21,86 @@ public class DbDriver {
 	String port;
 	String url;
 	String db;
+	private Connection connection;
 	
 	public DbDriver() {
 		try (InputStream input = new FileInputStream("resources/config.properties")) {
 			Properties props = new Properties();
-				
+
 			props.load(input);
-				
+
 			username = props.getProperty("username");
 			password = props.getProperty("password");
 			host = props.getProperty("host");
 			port = props.getProperty("port");
 			db = props.getProperty("db");
 			url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
+			try {
+				connection = DriverManager.getConnection(url, username, password);
+			} catch (Exception e) {
+				System.out.println("Connection failed.");
+			}
 		} catch (IOException io) {
 			io.printStackTrace();
 		}
 	}
 
 	public void insert(String date, float weight, float glucose, float ketones, String table) {
-		Connection connection = null;
 		String sql = "INSERT INTO " + table + 
-				     " (date, weight, glucose, ketones) VALUES (" +
-				     "date '" + date + "', " + 
-				     weight  + ", " + 
-				     glucose + ", " + 
-				     ketones + ")";
+				     " (date, weight, glucose, ketones) VALUES (?, ?, ?, ?)";  
 		try {
-			connection = DriverManager.getConnection(url, username, password);
-			if (connection != null) {
-				Statement statement = connection.createStatement();
-				statement.executeUpdate(sql);
-				statement.close();
-				connection.close();
-			} else {
-				System.out.println("Connection failed.");
-			}
-			
-		} catch (Exception e) {
+			PreparedStatement statement = connection.prepareStatement(sql);
+			statement.setDate(1, java.sql.Date.valueOf(date));
+			statement.setFloat(2, weight);
+			statement.setFloat(3, glucose);
+			statement.setFloat(4, ketones);
+			statement.executeUpdate();
+			statement.close();
+		} catch (SQLException e) {
 			System.out.println(e);
 		}
 	}
 	
-	public String[][] retrieveAll() {
-		Connection connection = null;
-		String[][] results = null;
+	public List<RowData> retrieveAll() {
+		List<RowData> results = new ArrayList<>();
 		try {
-			connection = DriverManager.getConnection(url, username, password);
-			if (connection !=null) {
-				Statement statement = connection.createStatement(
-						ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-				
-				ResultSet rs = statement.executeQuery("SELECT * FROM stats");
-				ResultSetMetaData metadata = rs.getMetaData();
-				
-				int columnCount = metadata.getColumnCount();
-				rs.last();
-				int rowCount = rs.getRow();
-				rs.beforeFirst();
-				results = new String[rowCount][columnCount];
-				
-				while (rs.next()) {
-					String[] row = new String[columnCount];
-					for (int i=1; i<=columnCount; i++) {
-						row[i-1] = rs.getString(i);
-					}
-					results[rs.getRow()-1] = row;
-				}
-				rs.close();
-				statement.close();
-				connection.close();
-			} else {
-				System.out.println("Connection failed.");
+			Statement statement = connection.createStatement();
+			ResultSet resultSet = statement.executeQuery("SELECT * FROM stats");
+
+			while (resultSet.next()) {
+				RowData row = new RowData(resultSet.getString("day_num"), resultSet.getString("date"), 
+						                  resultSet.getString("weight"), resultSet.getString("glucose"), 
+						                  resultSet.getString("ketones"));
+				results.add(row);
 			}
-		} catch (Exception e) {
+			resultSet.close();
+			statement.close();
+		} catch (SQLException e) {
 			System.out.println(e);
 		}
 		return results;
 	}
 	
-	public void update(String table, String day_num, String column, String value) {
-		Connection connection = null;
-		String sql = "UPDATE " + table + " SET " + 
-		             column + "='" + value + 
-		             "' WHERE day_num=" + day_num;
+	public void update(String table, int day_num, String column, float value) {
+		String sql = "UPDATE " + table + " SET " + column + " = ? WHERE day_num = ?";
 		try {
-			connection = DriverManager.getConnection(url, username, password);
-			if (connection != null) {
-				Statement statement = connection.createStatement();
-				statement.executeUpdate(sql);
-				statement.close();
-				connection.close();
-			} else {
-				System.out.println("Connection failed.");
-			} 
-		} catch (Exception e) {
+			PreparedStatement statement = connection.prepareStatement(sql);
+			statement.setFloat(1, value);
+			statement.setInt(2, day_num);
+			statement.executeUpdate();
+			statement.close();
+		} catch (SQLException e) {
 			System.out.println(e);
 		}
 	}
 	
-	public void destroy(String table, String day_num) {
-		Connection connection = null;
-		String sql = "DELETE FROM " + table + 
-				     " WHERE day_num" +
-		             " = " + day_num;
-		System.out.println(sql);
+	public void destroy(String table, int day_num) {
+		String sql = "DELETE FROM " + table + " WHERE day_num = ?";
 		try {
-			connection = DriverManager.getConnection(url, username, password);
-			if (connection != null) {
-				Statement statement = connection.createStatement();
-				statement.executeUpdate(sql);
-				statement.close();
-				connection.close();
-			} else {
-				System.out.println("Connection failed.");
-			}
+			PreparedStatement statement = connection.prepareStatement(sql);
+			statement.setInt(1, day_num);
+			statement.executeUpdate();
+			statement.close();
 		} catch (Exception e) {
 			System.out.println(e);
 		}

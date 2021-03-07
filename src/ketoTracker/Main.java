@@ -1,5 +1,6 @@
 package ketoTracker;
 
+import java.util.List;
 
 public class Main {
 
@@ -8,14 +9,16 @@ public class Main {
 		
 		
 		dbDriver.insert("2021-01-01", 200.1f, 94.3f, 4.2f, "stats");
-		dbDriver.update("stats", "3", "weight", "199");
-		dbDriver.destroy("stats", "9");
+		dbDriver.update("stats", 13, "weight", 180f);
+		dbDriver.destroy("stats", 11);
 		
-		String[][] results = dbDriver.retrieveAll();
-		for (int row=0; row<results.length; row++) {
-			for (int col=0; col<results[row].length; col++) {
-				System.out.print(results[row][col] + ", ");
-			}
+		List<db.RowData> results = dbDriver.retrieveAll();
+		for (db.RowData param : results) {
+			System.out.print(param.day_num + ", ");
+			System.out.print(param.weight + ", ");
+			System.out.print(param.date + ", ");
+			System.out.print(param.glucose + ", ");
+			System.out.print(param.ketones);
 			System.out.println(" ");
 		}
 		
