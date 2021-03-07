@@ -5,12 +5,16 @@ import java.util.List;
 public class Main {
 
 	public static void main(String[] args) {
+		
+		new view.KetoStatsGui();
+		
+		
 		db.DbDriver dbDriver = new db.DbDriver();
 		
-		
+		/*
 		dbDriver.insert("2021-01-01", 200.1f, 94.3f, 4.2f, "stats");
-		dbDriver.update("stats", 13, "weight", 180f);
-		dbDriver.destroy("stats", 11);
+		dbDriver.update("stats", 21, "weight", 180f);
+		dbDriver.destroy("stats", 25);*/
 		
 		List<db.RowData> results = dbDriver.retrieveAll();
 		for (db.RowData param : results) {

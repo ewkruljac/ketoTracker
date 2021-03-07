@@ -15,12 +15,12 @@ import java.sql.Statement;
 
 public class DbDriver {
 	
-	String username;
-	String password;
-	String host;
-	String port;
-	String url;
-	String db;
+	private String username;
+	private String password;
+	private String host;
+	private String port;
+	private String url;
+	private String db;
 	private Connection connection;
 	
 	public DbDriver() {
